@@ -187,7 +187,16 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             from,
             amount,
             msg,
-        } => receive(deps, env, sender, from, amount, msg),
+        } => receive(
+            deps,
+            env,
+            &config,
+            ContractStatus::Normal.to_u8(),
+            sender,
+            from,
+            amount,
+            msg,
+        ),
         HandleMsg::PreLoad { new_data } => pre_load(deps, env, &config, new_data),
         HandleMsg::LoadWhitelist { whitelist } => load_whitelist(deps, env, &config, whitelist),
         HandleMsg::DeactivateWhitelist {} => deactivate_whitelist(deps, env, &config),
@@ -328,7 +337,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             deps,
             env,
             &mut config,
-            ContractStatus::Normal.to_u8(),
+            ContractStatus::StopMint.to_u8(),
             recipient,
             token_id,
             memo,
@@ -337,7 +346,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             deps,
             env,
             &mut config,
-            ContractStatus::Normal.to_u8(),
+            ContractStatus::StopMint.to_u8(),
             transfers,
         ),
         HandleMsg::SendNft {
@@ -351,7 +360,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             deps,
             env,
             &mut config,
-            ContractStatus::Normal.to_u8(),
+            ContractStatus::StopMint.to_u8(),
             contract,
             receiver_info,
             token_id,
@@ -362,7 +371,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             deps,
             env,
             &mut config,
-            ContractStatus::Normal.to_u8(),
+            ContractStatus::StopMint.to_u8(),
             sends,
         ),
         HandleMsg::RegisterReceiveNft {
@@ -381,7 +390,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             deps,
             env,
             &mut config,
-            ContractStatus::Normal.to_u8(),
+            ContractStatus::StopMint.to_u8(),
             token_id,
             memo,
         ),
@@ -389,7 +398,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
             deps,
             env,
             &mut config,
-            ContractStatus::Normal.to_u8(),
+            ContractStatus::StopMint.to_u8(),
             &mut burns,
         ),
         HandleMsg::CreateViewingKey { entropy, .. } => create_key(
@@ -448,11 +457,14 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 pub fn receive<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
+    config: &Config,
+    priority: u8,
     _sender: HumanAddr,
     from: HumanAddr,
     amount: Uint128,
     msg: Option<Binary>,
 ) -> HandleResult {
+    check_status(config.status, priority)?;
     let snip20_address: HumanAddr = load(&deps.storage, SNIP20_ADDRESS_KEY)?;
 
     if env.message.sender != snip20_address {

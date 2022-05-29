@@ -1118,6 +1118,7 @@
       "type": "string",
       "enum": [
         "normal",
+        "stop_mint",
         "stop_transactions",
         "stop_all"
       ]
@@ -1192,16 +1193,9 @@
         "description": {
           "description": "item description",
           "type": [
-            "array",
+            "string",
             "null"
-          ],
-          "items": {
-            "type": "integer",
-            "format": "uint8",
-            "minimum": 0.0
-          },
-          "maxItems": 32,
-          "minItems": 32
+          ]
         },
         "external_url": {
           "description": "url to allow users to view the item on your site",
@@ -1250,6 +1244,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "token_subtype": {
+          "description": "token subtypes used by Stashh for display groupings (primarily used for badges, which are specified by using \"badge\" as the token_subtype)",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "youtube_url": {
           "description": "url to a YouTube video",

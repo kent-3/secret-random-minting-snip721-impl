@@ -232,7 +232,7 @@
       }
     },
     {
-      "description": "displays all the information about a token that the viewer has permission to see.  This may include the owner, the public metadata, the private metadata, royalty information, mint run information, and the token and inventory approvals",
+      "description": "displays all the information about a token that the viewer has permission to see.  This may include the owner, the public metadata, the private metadata, royalty information, mint run information, whether the token is unwrapped, whether the token is transferable, and the token and inventory approvals",
       "type": "object",
       "required": [
         "nft_dossier"
@@ -253,6 +253,47 @@
             },
             "token_id": {
               "type": "string"
+            },
+            "viewer": {
+              "description": "optional address and key requesting to view the token information",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/ViewerInfo"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "displays all the information about multiple tokens that the viewer has permission to see.  This may include the owner, the public metadata, the private metadata, royalty information, mint run information, whether the token is unwrapped, whether the token is transferable, and the token and inventory approvals",
+      "type": "object",
+      "required": [
+        "batch_nft_dossier"
+      ],
+      "properties": {
+        "batch_nft_dossier": {
+          "type": "object",
+          "required": [
+            "token_ids"
+          ],
+          "properties": {
+            "include_expired": {
+              "description": "optionally include expired Approvals in the response list.  If ommitted or false, expired Approvals will be filtered out of the response",
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "token_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
             "viewer": {
               "description": "optional address and key requesting to view the token information",
@@ -422,6 +463,44 @@
       }
     },
     {
+      "description": "displays the number of tokens that the querier has permission to see the owner and that belong to the specified address",
+      "type": "object",
+      "required": [
+        "num_tokens_of_owner"
+      ],
+      "properties": {
+        "num_tokens_of_owner": {
+          "type": "object",
+          "required": [
+            "owner"
+          ],
+          "properties": {
+            "owner": {
+              "$ref": "#/definitions/HumanAddr"
+            },
+            "viewer": {
+              "description": "optional address of the querier if different from the owner",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/HumanAddr"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "viewing_key": {
+              "description": "optional viewing key",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
       "description": "display if a token is unwrapped",
       "type": "object",
       "required": [
@@ -443,6 +522,38 @@
     },
     {
       "description": "verify that the specified address has approval to transfer every listed token",
+      "type": "object",
+      "required": [
+        "is_transferable"
+      ],
+      "properties": {
+        "is_transferable": {
+          "type": "object",
+          "required": [
+            "token_id"
+          ],
+          "properties": {
+            "token_id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    {
+      "description": "display that this contract implements non-transferable tokens",
+      "type": "object",
+      "required": [
+        "implements_non_transferable_tokens"
+      ],
+      "properties": {
+        "implements_non_transferable_tokens": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "description": "verify that the specified address has approval to transfer every listed token. A token will count as unapproved if it is non-transferable",
       "type": "object",
       "required": [
         "verify_transfer_approval"
@@ -609,7 +720,7 @@
               "description": "permit used to verify querier identity",
               "allOf": [
                 {
-                  "$ref": "#/definitions/Permit"
+                  "$ref": "#/definitions/Permit_for_TokenPermissions"
                 }
               ]
             },
@@ -634,31 +745,7 @@
     "HumanAddr": {
       "type": "string"
     },
-    "Permission": {
-      "type": "string",
-      "enum": [
-        "allowance",
-        "balance",
-        "history",
-        "owner"
-      ]
-    },
-    "Permit": {
-      "type": "object",
-      "required": [
-        "params",
-        "signature"
-      ],
-      "properties": {
-        "params": {
-          "$ref": "#/definitions/PermitParams"
-        },
-        "signature": {
-          "$ref": "#/definitions/PermitSignature"
-        }
-      }
-    },
-    "PermitParams": {
+    "PermitParams_for_TokenPermissions": {
       "type": "object",
       "required": [
         "allowed_tokens",
@@ -679,7 +766,7 @@
         "permissions": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/Permission"
+            "$ref": "#/definitions/TokenPermissions"
           }
         },
         "permit_name": {
@@ -699,6 +786,21 @@
         },
         "signature": {
           "$ref": "#/definitions/Binary"
+        }
+      }
+    },
+    "Permit_for_TokenPermissions": {
+      "type": "object",
+      "required": [
+        "params",
+        "signature"
+      ],
+      "properties": {
+        "params": {
+          "$ref": "#/definitions/PermitParams_for_TokenPermissions"
+        },
+        "signature": {
+          "$ref": "#/definitions/PermitSignature"
         }
       }
     },
@@ -795,6 +897,36 @@
           }
         },
         {
+          "description": "displays all the information about multiple tokens that the viewer has permission to see.  This may include the owner, the public metadata, the private metadata, royalty information, mint run information, whether the token is unwrapped, whether the token is transferable, and the token and inventory approvals",
+          "type": "object",
+          "required": [
+            "batch_nft_dossier"
+          ],
+          "properties": {
+            "batch_nft_dossier": {
+              "type": "object",
+              "required": [
+                "token_ids"
+              ],
+              "properties": {
+                "include_expired": {
+                  "description": "optionally include expired Approvals in the response list.  If ommitted or false, expired Approvals will be filtered out of the response",
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "token_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
           "description": "display the owner of the specified token if authorized to view it.  If the requester is also the token's owner, the response will also include a list of any addresses that can transfer this token.  The transfer approval list is for CW721 compliance, but the NftDossier query will be more complete by showing viewing approvals as well",
           "type": "object",
           "required": [
@@ -870,7 +1002,7 @@
           }
         },
         {
-          "description": "verify that the permit creator has approval to transfer every listed token",
+          "description": "verify that the permit creator has approval to transfer every listed token A token will count as unapproved if it is non-transferable",
           "type": "object",
           "required": [
             "verify_transfer_approval"
@@ -1050,7 +1182,36 @@
               }
             }
           }
+        },
+        {
+          "description": "displays the number of tokens that the querier has permission to see the owner and that belong to the specified address",
+          "type": "object",
+          "required": [
+            "num_tokens_of_owner"
+          ],
+          "properties": {
+            "num_tokens_of_owner": {
+              "type": "object",
+              "required": [
+                "owner"
+              ],
+              "properties": {
+                "owner": {
+                  "$ref": "#/definitions/HumanAddr"
+                }
+              }
+            }
+          }
         }
+      ]
+    },
+    "TokenPermissions": {
+      "type": "string",
+      "enum": [
+        "allowance",
+        "balance",
+        "history",
+        "owner"
       ]
     },
     "ViewerInfo": {

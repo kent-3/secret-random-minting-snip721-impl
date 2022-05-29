@@ -971,6 +971,7 @@ pub enum ResponseStatus {
 #[serde(rename_all = "snake_case")]
 pub enum ContractStatus {
     Normal,
+    StopMint,
     StopTransactions,
     StopAll,
 }
@@ -980,8 +981,9 @@ impl ContractStatus {
     pub fn to_u8(&self) -> u8 {
         match self {
             ContractStatus::Normal => 0,
-            ContractStatus::StopTransactions => 1,
-            ContractStatus::StopAll => 2,
+            ContractStatus::StopMint => 1,
+            ContractStatus::StopTransactions => 2,
+            ContractStatus::StopAll => 3,
         }
     }
 }
