@@ -453,7 +453,20 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     pad_handle_result(response, BLOCK_SIZE)
 }
 
-/// For receiving SNIP20s and minting
+/// Returns HandleResult
+///
+/// receives SNIP20 tokens and mints a random NFT 
+///
+/// # Arguments
+///
+/// * `deps` - mutable reference to Extern containing all the contract's external dependencies
+/// * `env` - Env of contract's environment
+/// * `config` - a reference to the Config
+/// * `priority` - u8 representation of highest status level this action is permitted at
+/// * `sender` - a SNIP20 token contract address
+/// * `from` - a wallet address of the SNIP20 token sender
+/// * `amount` - a Uint128 representation of the number of SNIP20 tokens sent
+/// * `msg` - a Binary encoded message included with the SNIP20 token Send message
 pub fn receive<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -496,7 +509,16 @@ pub fn receive<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-/// Lets Admin load metadata used in random minting
+/// Returns HandleResult
+///
+/// lets Admin load metadata used in random minting
+///
+/// # Arguments
+///
+/// * `deps` - mutable reference to Extern containing all the contract's external dependencies
+/// * `env` - Env of contract's environment
+/// * `config` - a reference to the Config
+/// * `new_data` - a list of NFT metadata to be stored
 pub fn pre_load<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -523,7 +545,16 @@ pub fn pre_load<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
-/// Lets Admin load whitelist
+/// Returns HandleResult
+///
+/// lets Admin load whitelist
+///
+/// # Arguments
+///
+/// * `deps` - mutable reference to Extern containing all the contract's external dependencies
+/// * `env` - Env of contract's environment
+/// * `config` - a reference to the Config
+/// * `whitelist` - a list of whitelisted addresses to be stored
 pub fn load_whitelist<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
@@ -557,7 +588,15 @@ pub fn load_whitelist<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
-/// Lets Admin deactivate whitelist
+/// Returns HandleResult
+///
+/// lets Admin deactivate whitelist
+///
+/// # Arguments
+///
+/// * `deps` - mutable reference to Extern containing all the contract's external dependencies
+/// * `env` - Env of contract's environment
+/// * `config` - a reference to the Config
 pub fn deactivate_whitelist<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
