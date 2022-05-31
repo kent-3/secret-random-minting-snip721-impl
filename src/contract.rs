@@ -52,7 +52,8 @@ use rand_chacha::ChaChaRng;
 use secret_toolkit::snip20::handle::{register_receive_msg, transfer_msg};
 
 /// Mint cost
-pub const MINT_COST: u128 = 10000000; //WRITE IN LOWEST DENOMINATION OF YOUR PREFERRED SNIP
+pub const MINT_COST: u128 = 30000000; //WRITE IN LOWEST DENOMINATION OF YOUR PREFERRED SNIP
+pub const WL_DISCOUNT: u128 = 6000000; //amount to be returned to whitelisted addresses
 
 ////////////////////////////////////// Init ///////////////////////////////////////
 /// Returns InitResult
@@ -716,19 +717,31 @@ pub fn mint<S: Storage, A: Api, Q: Querier>(
     for royalty in royalty_list.royalties.iter() {
         let decimal_places: u32 = royalty_list.decimal_places_in_rates.into();
         let rate: u128 = (royalty.rate as u128) * (10 as u128).pow(decimal_places);
-        let amount = Uint128((MINT_COST * rate) / (100 as u128).pow(decimal_places));
+        let amount = Uint128(((MINT_COST - WL_DISCOUNT) * rate) / (100 as u128).pow(decimal_places));
         let recipient = deps.api.human_address(&royalty.recipient).unwrap();
         let cosmos_msg = transfer_msg(
             recipient,
             amount,
-            padding.clone(),
             None,
+            padding.clone(),
             block_size.clone(),
             callback_code_hash.clone(),
             snip20_address.clone(),
         )?;
         msg_list.push(cosmos_msg);
     }
+
+    // Return the WL discount
+    let refund_msg = transfer_msg(
+        owner.clone().unwrap(),
+        Uint128(WL_DISCOUNT),
+        None,
+        padding.clone(),
+        block_size.clone(),
+        callback_code_hash.clone(),
+        snip20_address.clone(),
+    )?;
+    msg_list.push(refund_msg);
 
     // Pull random token data for minting then remove from data pool
     let prng_seed: Vec<u8> = load(&deps.storage, PRNG_SEED_KEY)?;
