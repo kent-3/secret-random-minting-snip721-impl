@@ -53,7 +53,10 @@ use secret_toolkit::snip20::handle::{register_receive_msg, transfer_msg};
 
 /// Mint cost
 pub const MINT_COST: u128 = 30000000; //WRITE IN LOWEST DENOMINATION OF YOUR PREFERRED SNIP
-pub const WL_DISCOUNT: u128 = 6000000; //amount to be returned to whitelisted addresses
+/// Discount/refund for whitelisted addresses
+pub const WL_DISCOUNT: u128 = 6000000;
+/// Maximum mints per whitelisted address
+pub const WL_MAX: u8 = 3;
 
 ////////////////////////////////////// Init ///////////////////////////////////////
 /// Returns InitResult
@@ -576,10 +579,10 @@ pub fn load_whitelist<S: Storage, A: Api, Q: Querier>(
     for hum_addr in whitelist.iter() {
         let raw_addr = deps.api.canonical_address(&hum_addr)?;
 
-        // Saves FALSE to show addr has not minted
-        save(&mut white_store, &raw_addr.as_slice(), &false)?;
+        // Saves the maximum number of discounted tokens addr can mint
+        save(&mut white_store, &raw_addr.as_slice(), &WL_MAX)?;
 
-        whitecount = whitecount + 1;
+        whitecount = whitecount + WL_MAX as u16;
     }
 
     // Saves whitelist and marks as being active
@@ -673,6 +676,8 @@ pub fn mint<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("All tokens have been minted"));
     }
 
+    let mut refund: bool = false;
+
     //Whitelist management
     //Checks if minter has a whitelist reservation, and removes their reservation after minting
 
@@ -680,24 +685,25 @@ pub fn mint<S: Storage, A: Api, Q: Querier>(
         let whitecount: u16 = load(&deps.storage, WHITELIST_COUNT_KEY)?;
         let mut white_store = PrefixedStorage::new(PREFIX_WHITELIST, &mut deps.storage);
 
-        let list_check: Option<bool> = may_load(
+        let list_check: Option<u8> = may_load(
             &white_store,
             deps.api
                 .canonical_address(&owner.clone().unwrap())?
                 .as_slice(),
         )?;
 
-        // If addr is on list and hasn't minted
-        if list_check != None && list_check.unwrap() == false {
+        // If addr is on list and hasn't minted the max allowed
+        if list_check != None && list_check.unwrap() > 0 {
             save(
                 &mut white_store,
                 &deps
                     .api
                     .canonical_address(&owner.clone().unwrap())?
                     .as_slice(),
-                &true,
+                &(list_check.unwrap() - 1) ,
             )?;
             save(&mut deps.storage, WHITELIST_COUNT_KEY, &(whitecount - 1))?;
+            refund = true;
         } else if whitecount >= count {
             return Err(StdError::generic_err("Remaining tokens are reserved"));
         }
@@ -712,17 +718,39 @@ pub fn mint<S: Storage, A: Api, Q: Querier>(
     // Contract callback hash
     let callback_code_hash: String = load(&deps.storage, &SNIP20_HASH_KEY)?;
     let padding = None;
+    let memo = None;
     let block_size = 256;
+
+    if refund {
+        // Return the WL discount
+        let refund_amount = Uint128(WL_DISCOUNT);
+        let recipient = owner.clone().unwrap();
+        let refund_msg = transfer_msg(
+            recipient,
+            refund_amount,
+            memo.clone(),
+            padding.clone(),
+            block_size.clone(),
+            callback_code_hash.clone(),
+            snip20_address.clone(),
+        )?;
+        msg_list.push(refund_msg);
+    }
 
     for royalty in royalty_list.royalties.iter() {
         let decimal_places: u32 = royalty_list.decimal_places_in_rates.into();
         let rate: u128 = (royalty.rate as u128) * (10 as u128).pow(decimal_places);
-        let amount = Uint128(((MINT_COST - WL_DISCOUNT) * rate) / (100 as u128).pow(decimal_places));
+        let amount;
+        if refund {
+            amount = Uint128(((MINT_COST - WL_DISCOUNT) * rate) / (100 as u128).pow(decimal_places));
+        } else {
+            amount = Uint128((MINT_COST * rate) / (100 as u128).pow(decimal_places));
+        }
         let recipient = deps.api.human_address(&royalty.recipient).unwrap();
         let cosmos_msg = transfer_msg(
             recipient,
             amount,
-            None,
+            memo.clone(),
             padding.clone(),
             block_size.clone(),
             callback_code_hash.clone(),
@@ -730,18 +758,6 @@ pub fn mint<S: Storage, A: Api, Q: Querier>(
         )?;
         msg_list.push(cosmos_msg);
     }
-
-    // Return the WL discount
-    let refund_msg = transfer_msg(
-        owner.clone().unwrap(),
-        Uint128(WL_DISCOUNT),
-        None,
-        padding.clone(),
-        block_size.clone(),
-        callback_code_hash.clone(),
-        snip20_address.clone(),
-    )?;
-    msg_list.push(refund_msg);
 
     // Pull random token data for minting then remove from data pool
     let prng_seed: Vec<u8> = load(&deps.storage, PRNG_SEED_KEY)?;
